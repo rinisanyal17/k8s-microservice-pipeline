@@ -33,4 +33,24 @@ jobs:
 
       - name: 6. Automated Pipeline Health Check
         run: |
-          curl -s http://myapp.local/healthz | grep "healthy"
+          echo "Starting temporary port-forward on port 8888..."
+          kubectl port-forward service/k8s-microservice-service 8888:5000 &
+          PF_PID=$!
+          sleep 4
+
+          echo "Executing health check request..."
+          HTTP_STATUS=$(curl -s -o /tmp/response.txt -w "%{http_code}" http://127.0.0.1:8888/healthz || echo "000")
+          RESPONSE_BODY=$(cat /tmp/response.txt 2>/dev/null || echo "No response")
+
+          echo "HTTP Status: $HTTP_STATUS"
+          echo "Response Body: $RESPONSE_BODY"
+
+          kill $PF_PID 2>/dev/null || true
+
+          if [ "$HTTP_STATUS" -eq 200 ]; then
+            echo "✅ Pipeline Health Check Passed!"
+            exit 0
+          else
+            echo "❌ Pipeline Health Check Failed with HTTP $HTTP_STATUS"
+            exit 1
+          fi
