@@ -1,10 +1,12 @@
-name: CI/CD Microservice Pipeline
+name: "CI/CD Microservice Pipeline"
 
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - main
   pull_request:
-    branches: [ "main" ]
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
@@ -26,7 +28,7 @@ jobs:
 
       - name: 5. Verify Zero-Downtime Rollout
         run: kubectl rollout status deployment/k8s-microservice-deployment --timeout=90s
-      
+
       - name: 6. Automated Pipeline Health Check
         run: |
           echo "Starting temporary port-forward on port 8888..."
@@ -57,5 +59,3 @@ jobs:
             echo "❌ Pipeline Health Check Failed with HTTP $HTTP_STATUS"
             exit 1
           fi
-
-      
