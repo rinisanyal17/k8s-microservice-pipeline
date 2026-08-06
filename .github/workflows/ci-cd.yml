@@ -48,9 +48,9 @@ jobs:
           kill $PF_PID 2>/dev/null || true
 
           if [ "$HTTP_STATUS" -eq 200 ]; then
-            echo "✅ Pipeline Health Check Passed!"
+            echo "Pipeline Health Check Passed!"
             exit 0
           else
-            echo "❌ Pipeline Health Check Failed with HTTP $HTTP_STATUS"
+            echo "Pipeline Health Check Failed with HTTP $HTTP_STATUS"
             exit 1
           fi
