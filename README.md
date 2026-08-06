@@ -1,9 +1,10 @@
 <div align="center">
 
 # k8s-microservice-pipeline
-### Production-Ready End-to-End Kubernetes Microservice Deployment Pipeline
+### Production-Ready End-to-End Kubernetes Microservice CI/CD Deployment Pipeline
 
 <p>
+  <img src="https://img.shields.io/badge/GitHub_Actions-2088FF?style=for-the-badge&logo=githubactions&logoColor=white" />
   <img src="https://img.shields.io/badge/Kubernetes-326CE5?style=for-the-badge&logo=kubernetes&logoColor=white" />
   <img src="https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white" />
   <img src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white" />
@@ -17,48 +18,53 @@
 
 ## 📌 Overview
 
-This repository contains a cloud-native, end-to-end Kubernetes microservice pipeline demonstrating best practices for containerization, declarative Kubernetes configuration, ingress routing, zero-downtime rolling updates, and health monitoring.
+This repository contains a cloud-native, automated end-to-end Kubernetes microservice pipeline. It demonstrates industry best practices for continuous integration, local container image delivery, declarative Kubernetes deployment, ingress traffic management, zero-downtime rolling updates, and health monitoring.
 
-The core workload is a high-performance Python/Flask application encapsulated in a lightweight Docker image (`python:3.10-slim`) and orchestrated on a local Kubernetes cluster using Minikube and Nginx Ingress.
+Whenever a commit is pushed to the `main` branch, an automated **GitHub Actions Self-Hosted Runner** triggers a full CI/CD workflow: building the Docker image, transferring it to Minikube, deploying Kubernetes manifests, and verifying health checks.
 
 ---
 
-## 🏗️ Architecture & Traffic Flow
+## 🏗️ End-to-End CI/CD Architecture
 
-The architecture below illustrates the path of an external client request passing through local network tunnels, host resolution, Nginx Ingress routing, ClusterIP service abstraction, and load balancing across active replica pods.
+The architecture below illustrates the path from developer code commit to automated execution and live cluster routing:
 
 ```mermaid
-flowchart LR
-    Client["Client / Browser<br/><code>[http://myapp.local](http://myapp.local)</code>"] 
-    
-    subgraph Cluster["Kubernetes Cluster (Minikube)"]
-        direction LR
-        Ingress["Nginx Ingress<br/><i>Ingress Controller</i><br/>(Host Routing)"]
-        Service["K8s Service<br/><i>ClusterIP: 5000</i><br/>Load Balancer"]
-        
-        subgraph Pods["Replica Pods"]
-            Pod1["Pod 1 (1/1 Ready)<br/>Flask App (Port 5000)<br/><code>Env: APP_ENV</code>"]
-            Pod2["Pod 2 (1/1 Ready)<br/>Flask App (Port 5000)<br/><code>Env: APP_ENV</code>"]
-        end
-        
-        ConfigMap["ConfigMap<br/><code>APP_ENV: development</code>"]
+flowchart TD
+    subgraph Developer_Workspace["1. Source Code Management"]
+        Dev["Developer"] -->|git push origin main| GitHub["GitHub Repository"]
     end
 
-    Client -->|Host/Port 80| Ingress
-    Ingress -->|ClusterIP| Service
-    Service -->|Load Balance| Pod1
-    Service -->|Load Balance| Pod2
-    ConfigMap -.-|Environment Injection| Pod1
-    ConfigMap -.-|Environment Injection| Pod2
+    subgraph CI_Pipeline["2. Continuous Integration (GitHub Actions)"]
+        GitHub -->|Webhook Trigger| Runner["WSL Self-Hosted Runner"]
+        
+        subgraph Workflow_Steps["Pipeline Stages"]
+            Checkout["1. Checkout Code"] --> BuildDocker["2. Docker Build"]
+            BuildDocker --> LoadMinikube["3. Load Image to Minikube"]
+        end
 
-    classDef default fill:#1e293b,stroke:#334155,color:#e2e8f0;
-    classDef ingress fill:#0284c7,stroke:#38bdf8,color:#fff;
-    classDef pod fill:#0f172a,stroke:#22c55e,color:#4ade80;
-    classDef config fill:#1e293b,stroke:#a855f7,color:#c084fc;
+        Runner --> Workflow_Steps
+    end
+
+    subgraph CD_Deployment["3. Continuous Deployment"]
+        LoadMinikube --> ApplyManifests["4. kubectl apply -f k8s/"]
+        ApplyManifests --> RolloutCheck["5. Verify Rollout Status"]
+        RolloutCheck --> HealthCheck["6. Smoke Test (/healthz)"]
+    end
+
+    subgraph K8s_Cluster["4. Kubernetes Runtime (Minikube)"]
+        HealthCheck --> Ingress["Nginx Ingress Router<br/><code>[http://myapp.local](http://myapp.local)</code>"]
+        Ingress --> Service["ClusterIP Service (Port 5000)"]
+        Service --> Pod1["Pod 1 (1/1 Ready)"]
+        Service --> Pod2["Pod 2 (1/1 Ready)"]
+    end
+
+    classDef dev fill:#1e293b,stroke:#38bdf8,color:#f8fafc;
+    classDef ci fill:#0284c7,stroke:#38bdf8,color:#fff;
+    classDef cd fill:#0f172a,stroke:#22c55e,color:#4ade80;
     
-    class Ingress ingress;
-    class Pod1,Pod2 pod;
-    class ConfigMap config;
+    class Dev,GitHub dev;
+    class Runner,Checkout,BuildDocker,LoadMinikube ci;
+    class ApplyManifests,RolloutCheck,HealthCheck,Ingress,Service,Pod1,Pod2 cd;
 ```
 
 ---
@@ -67,6 +73,9 @@ flowchart LR
 
 ```text
 k8s-microservice-pipeline/
+├── .github/
+│   └── workflows/
+│       └── ci-cd.yml    # GitHub Actions automated pipeline definition
 ├── app.py               # Python/Flask microservice with / & /healthz endpoints
 ├── requirements.txt     # Dependency definitions (Flask, gunicorn)
 ├── Dockerfile           # Optimized single-stage runtime image build
@@ -80,45 +89,38 @@ k8s-microservice-pipeline/
 
 ---
 
-## 🚀 Getting Started & Execution Guide
+## 🚀 Getting Started Guide
 
-### 1. Local Container Build & Cache Injection
+### 1. Register GitHub Self-Hosted Runner (WSL)
 ```bash
-# Build application image locally
-docker build -t k8s-microservice-pipeline:v1 .
+# Register runner daemon under repo Settings -> Actions -> Runners
+mkdir actions-runner && cd actions-runner
+tar xzf ./actions-runner-linux-x64-*.tar.gz
+./config.sh --url [https://github.com/](https://github.com/)<USER>/k8s-microservice-pipeline --token <TOKEN>
 
-# Transfer image directly into Minikube node storage
-minikube image load k8s-microservice-pipeline:v1
+# Start background daemon service
+sudo ./svc.sh install
+sudo ./svc.sh start
 ```
 
-### 2. Declarative Deployment
+### 2. Enable Local Networking & Ingress
 ```bash
-# Apply all Kubernetes manifests simultaneously
-kubectl apply -f k8s/
-
-# Monitor rollout status
-kubectl get pods -w
-```
-
-### 3. Ingress Tunneling & Local Routing
-```bash
-# Enable Nginx Ingress Controller
+# Enable Ingress controller
 minikube addons enable ingress
 
-# Start Minikube Tunnel (Keep active in separate terminal)
+# Start Minikube Tunnel (Keep open in a separate terminal tab)
 minikube tunnel
 
 # Map host entry in /etc/hosts or C:\Windows\System32\drivers\etc\hosts
 127.0.0.1   myapp.local
 ```
 
-### 4. End-to-End Verification
+### 3. Trigger Automated CI/CD
+Simply commit and push any changes to trigger the full automated build and deployment:
 ```bash
-# Test main web endpoint
-curl [http://myapp.local](http://myapp.local)
-
-# Test Liveness/Readiness health probes
-curl [http://myapp.local/healthz](http://myapp.local/healthz)
+git add .
+git commit -m "feat: trigger automated pipeline build"
+git push origin main
 ```
 
 ---
@@ -127,10 +129,10 @@ curl [http://myapp.local/healthz](http://myapp.local/healthz)
 
 | Feature | Implementation Details |
 | :--- | :--- |
-| **Zero-Downtime Deployment** | Rolling update strategy configured via `Deployment` spec with readiness/liveness health checks. |
-| **Isolated Build** | Compliant with PEP 668 environment handling; isolated host builds via virtualenv and clean Docker layer caching. |
-| **Resilient Networking** | Path-based HTTP routing using Nginx Ingress and ClusterIP service decouples backend pods from external endpoints. |
-| **Health & Observability** | Automated pod lifecycle checks (HTTP GET `/healthz`) running periodically to ensure traffic is only served to healthy containers. |
+| **Full Pipeline Automation** | End-to-end CI/CD powered by GitHub Actions targeting local Minikube via WSL self-hosted agent. |
+| **Zero-Downtime Rolling Updates** | K8s rolling deployment strategy with readiness/liveness health checks ensures uninterrupted traffic. |
+| **Resilient Traffic Management** | Nginx Ingress host routing (`myapp.local`) with ClusterIP service load balancing across multiple active pods. |
+| **Automated Testing & Validation** | Post-deployment smoke testing (`/healthz` endpoint query) integrated directly into the CI pipeline. |
 
 ---
 
