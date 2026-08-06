@@ -14,7 +14,7 @@ def home():
     return f"""
     <html>
       <body style="font-family: Arial, sans-serif; text-align: center; padding-top: 50px;">
-        <h1 style="color: #2c3e50;">🚀 Hello from Automated CI/CD Pipeline!!</h1>
+        <h1 style="color: #2c3e50;">🚀 Hello from Automated CI/CD Pipeline!!!</h1>
         <p>Environment: <strong>{APP_ENV}</strong></p>
         <p>Pod Hostname: <strong>{pod_name}</strong></p>
       </body>
