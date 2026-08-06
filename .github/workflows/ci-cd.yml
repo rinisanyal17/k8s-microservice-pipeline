@@ -2,13 +2,14 @@ name: CI/CD Microservice Pipeline
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "master" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "master" ]
+  workflow_dispatch:
 
 jobs:
   build-and-deploy:
-    runs-on: self-hosted
+    runs-on: [self-hosted]
 
     steps:
       - name: 1. Checkout Repository Code
@@ -16,25 +17,20 @@ jobs:
 
       - name: 2. Build Docker Image
         run: |
-          echo "Building Docker Image..."
           docker build -t k8s-microservice-pipeline:v1 .
 
       - name: 3. Load Image into Minikube Cache
         run: |
-          echo "Syncing image with local Minikube cluster..."
           minikube image load k8s-microservice-pipeline:v1
 
       - name: 4. Deploy Declarative Kubernetes Manifests
         run: |
-          echo "Applying Kubernetes manifests..."
           kubectl apply -f k8s/
 
       - name: 5. Verify Zero-Downtime Rollout
         run: |
-          echo "Waiting for rollout to complete..."
           kubectl rollout status deployment/k8s-microservice-deployment --timeout=90s
 
       - name: 6. Automated Pipeline Health Check
         run: |
-          echo "Running post-deployment smoke test..."
           curl -s http://myapp.local/healthz | grep "healthy"
