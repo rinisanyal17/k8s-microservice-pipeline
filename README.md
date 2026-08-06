@@ -4,11 +4,11 @@
 ### Production-Ready End-to-End Kubernetes Microservice Deployment Pipeline
 
 <p>
-  <img src="[https://img.shields.io/badge/Kubernetes-326CE5?style=for-the-badge&logo=kubernetes&logoColor=white](https://img.shields.io/badge/Kubernetes-326CE5?style=for-the-badge&logo=kubernetes&logoColor=white)" />
-  <img src="[https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)" />
-  <img src="[https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)" />
-  <img src="[https://img.shields.io/badge/Nginx_Ingress-009639?style=for-the-badge&logo=nginx&logoColor=white](https://img.shields.io/badge/Nginx_Ingress-009639?style=for-the-badge&logo=nginx&logoColor=white)" />
-  <img src="[https://img.shields.io/badge/Minikube-2088FF?style=for-the-badge&logo=minikube&logoColor=white](https://img.shields.io/badge/Minikube-2088FF?style=for-the-badge&logo=minikube&logoColor=white)" />
+  <img src="https://img.shields.io/badge/Kubernetes-326CE5?style=for-the-badge&logo=kubernetes&logoColor=white" />
+  <img src="https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white" />
+  <img src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white" />
+  <img src="https://img.shields.io/badge/Nginx_Ingress-009639?style=for-the-badge&logo=nginx&logoColor=white" />
+  <img src="https://img.shields.io/badge/Minikube-2088FF?style=for-the-badge&logo=minikube&logoColor=white" />
 </p>
 
 </div>
@@ -29,7 +29,7 @@ The architecture below illustrates the path of an external client request passin
 
 ```mermaid
 flowchart LR
-    Client["Client / Browser<br/><code>http://myapp.local</code>"] 
+    Client["Client / Browser<br/><code>[http://myapp.local](http://myapp.local)</code>"] 
     
     subgraph Cluster["Kubernetes Cluster (Minikube)"]
         direction LR
@@ -59,7 +59,14 @@ flowchart LR
     class Ingress ingress;
     class Pod1,Pod2 pod;
     class ConfigMap config;
-📁 Repository StructurePlaintextk8s-microservice-pipeline/
+```
+
+---
+
+## 📁 Repository Structure
+
+```text
+k8s-microservice-pipeline/
 ├── app.py               # Python/Flask microservice with / & /healthz endpoints
 ├── requirements.txt     # Dependency definitions (Flask, gunicorn)
 ├── Dockerfile           # Optimized single-stage runtime image build
@@ -69,17 +76,33 @@ flowchart LR
     ├── deployment.yml   # Workload definition (2 Replicas, Probes, Resource Limits)
     ├── service.yml      # Internal ClusterIP network exposure on Port 5000
     └── ingress.yml      # Path-based routing rules for host myapp.local
-🚀 Getting Started & Execution Guide1. Local Container Build & Cache InjectionBash# Build application image locally
+```
+
+---
+
+## 🚀 Getting Started & Execution Guide
+
+### 1. Local Container Build & Cache Injection
+```bash
+# Build application image locally
 docker build -t k8s-microservice-pipeline:v1 .
 
 # Transfer image directly into Minikube node storage
 minikube image load k8s-microservice-pipeline:v1
-2. Declarative DeploymentBash# Apply all Kubernetes manifests simultaneously
+```
+
+### 2. Declarative Deployment
+```bash
+# Apply all Kubernetes manifests simultaneously
 kubectl apply -f k8s/
 
 # Monitor rollout status
 kubectl get pods -w
-3. Ingress Tunneling & Local RoutingBash# Enable Nginx Ingress Controller
+```
+
+### 3. Ingress Tunneling & Local Routing
+```bash
+# Enable Nginx Ingress Controller
 minikube addons enable ingress
 
 # Start Minikube Tunnel (Keep active in separate terminal)
@@ -87,9 +110,32 @@ minikube tunnel
 
 # Map host entry in /etc/hosts or C:\Windows\System32\drivers\etc\hosts
 127.0.0.1   myapp.local
-4. End-to-End VerificationBash# Test main web endpoint
-curl http://myapp.local
+```
+
+### 4. End-to-End Verification
+```bash
+# Test main web endpoint
+curl [http://myapp.local](http://myapp.local)
 
 # Test Liveness/Readiness health probes
-curl http://myapp.local/healthz
-🛠️ Core Engineering HighlightsFeatureImplementation DetailsZero-Downtime DeploymentRolling update strategy configured via Deployment spec with readiness/liveness health checks.Isolated BuildCompliant with PEP 668 environment handling; isolated host builds via virtualenv and clean Docker layer caching.Resilient NetworkingPath-based HTTP routing using Nginx Ingress and ClusterIP service decouples backend pods from external endpoints.Health & ObservabilityAutomated pod lifecycle checks (HTTP GET /healthz) running periodically to ensure traffic is only served to healthy containers.k8s-microservice-pipeline — Maintained by Rini Sanyal | Senior Embedded & Platform Engineer
+curl [http://myapp.local/healthz](http://myapp.local/healthz)
+```
+
+---
+
+## 🛠️ Core Engineering Highlights
+
+| Feature | Implementation Details |
+| :--- | :--- |
+| **Zero-Downtime Deployment** | Rolling update strategy configured via `Deployment` spec with readiness/liveness health checks. |
+| **Isolated Build** | Compliant with PEP 668 environment handling; isolated host builds via virtualenv and clean Docker layer caching. |
+| **Resilient Networking** | Path-based HTTP routing using Nginx Ingress and ClusterIP service decouples backend pods from external endpoints. |
+| **Health & Observability** | Automated pod lifecycle checks (HTTP GET `/healthz`) running periodically to ensure traffic is only served to healthy containers. |
+
+---
+
+<div align="center">
+
+<sub><b>k8s-microservice-pipeline</b> — Maintained by <b>Rini Sanyal</b> | Senior Embedded & Platform Engineer</sub>
+
+</div>
