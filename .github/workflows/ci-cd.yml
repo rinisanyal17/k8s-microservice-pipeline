@@ -26,19 +26,36 @@ jobs:
 
       - name: 5. Verify Zero-Downtime Rollout
         run: kubectl rollout status deployment/k8s-microservice-deployment --timeout=90s
-
+      
       - name: 6. Automated Pipeline Health Check
         run: |
           echo "Starting temporary port-forward on port 8888..."
           kubectl port-forward service/k8s-microservice-service 8888:5000 &
           PF_PID=$!
-          sleep 4
-          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8888/healthz || echo "000")
+
+          echo "Waiting for port-forward to become active..."
+          HTTP_STATUS="000"
+          for i in {1..5}; do
+            sleep 3
+            HTTP_STATUS=$(curl -s -o /tmp/response.txt -w "%{http_code}" http://127.0.0.1:8888/healthz || echo "000")
+            if [ "$HTTP_STATUS" -eq 200 ]; then
+              break
+            fi
+            echo "Attempt $i failed with status $HTTP_STATUS, retrying..."
+          done
+
+          RESPONSE_BODY=$(cat /tmp/response.txt 2>/dev/null || echo "No response")
+          echo "Final HTTP Status: $HTTP_STATUS"
+          echo "Response Body: $RESPONSE_BODY"
+
           kill $PF_PID 2>/dev/null || true
+
           if [ "$HTTP_STATUS" -eq 200 ]; then
-            echo "Pipeline Health Check Passed!"
+            echo "✅ Pipeline Health Check Passed!"
             exit 0
           else
-            echo "Pipeline Health Check Failed with HTTP $HTTP_STATUS"
+            echo "❌ Pipeline Health Check Failed with HTTP $HTTP_STATUS"
             exit 1
           fi
+
+      
