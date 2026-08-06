@@ -141,3 +141,4 @@ git push origin main
 <sub><b>k8s-microservice-pipeline</b> — Maintained by <b>Rini Sanyal</b> | Senior Embedded & Platform Engineer</sub>
 
 </div>
+# Pipeline Verified
