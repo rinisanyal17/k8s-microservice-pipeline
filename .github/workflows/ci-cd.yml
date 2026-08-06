@@ -1,56 +1,46 @@
-name: CI/CD Microservice Pi eline
+name: "CI/CD Microservice Pipeline"
 
 on:
-   ush:
-    branches: [ "main", "master" ]
-   ull_request:
-    branches: [ "main", "master" ]
-  workflow_dis atch:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
 
 jobs:
-  build-and-de loy:
-    runs-on: [self-hosted]
+  build-and-deploy:
+    runs-on: self-hosted
 
-    ste s:
-      - name: 1. Checkout Re ository Code
+    steps:
+      - name: 1. Checkout Repository Code
         uses: actions/checkout@v4
 
       - name: 2. Build Docker Image
-        run: |
-          docker build -t k8s-microservice- i eline:v1 .
+        run: docker build -t k8s-microservice-pipeline:v1 .
 
       - name: 3. Load Image into Minikube Cache
-        run: |
-          minikube image load k8s-microservice- i eline:v1
+        run: minikube image load k8s-microservice-pipeline:v1
 
-      - name: 4. De loy Declarative Kubernetes Manifests
-        run: |
-          kubectl a  ly -f k8s/
+      - name: 4. Deploy Declarative Kubernetes Manifests
+        run: kubectl apply -f k8s/
 
       - name: 5. Verify Zero-Downtime Rollout
-        run: |
-          kubectl rollout status de loyment/k8s-microservice-de loyment --timeout=90s
+        run: kubectl rollout status deployment/k8s-microservice-deployment --timeout=90s
 
-      - name: 6. Automated Pi eline Health Check
+      - name: 6. Automated Pipeline Health Check
         run: |
-          echo "Starting tem orary  ort-forward on  ort 8888..."
-          kubectl  ort-forward service/k8s-microservice-service 8888:5000 &
+          echo "Starting temporary port-forward on port 8888..."
+          kubectl port-forward service/k8s-microservice-service 8888:5000 &
           PF_PID=$!
-          slee  4
-
-          echo "Executing health check request..."
-          HTTP_STATUS=$(curl -s -o /tm /res onse.txt -w "%{htt _code}" htt ://127.0.0.1:8888/healthz || echo "000")
-          RESPONSE_BODY=$(cat /tm /res onse.txt 2>/dev/null || echo "No res onse")
-
-          echo "HTTP Status: $HTTP_STATUS"
-          echo "Res onse Body: $RESPONSE_BODY"
-
+          sleep 4
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8888/healthz || echo "000")
           kill $PF_PID 2>/dev/null || true
-
           if [ "$HTTP_STATUS" -eq 200 ]; then
-            echo "Pi eline Health Check Passed!"
+            echo "Pipeline Health Check Passed!"
             exit 0
           else
-            echo "Pi eline Health Check Failed with HTTP $HTTP_STATUS"
+            echo "Pipeline Health Check Failed with HTTP $HTTP_STATUS"
             exit 1
           fi
