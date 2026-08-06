@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: k8s-microservice-deployment
+  labels:
+    app: k8s-microservice
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: k8s-microservice
+  template:
+    metadata:
+      labels:
+        app: k8s-microservice
+    spec:
+      containers:
+      - name: web-app
+        image: k8s-microservice-pipeline:v1
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 5000
+        envFrom:
+        - configMapRef:
+            name: app-config
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "100m"
+          limits:
+            memory: "128Mi"
+            cpu: "200m"
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 5000
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 5000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+
